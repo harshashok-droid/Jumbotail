@@ -1,0 +1,848 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VQIA — Vendor Quality Intelligence Agent for Jumbotail</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #F8F8F6;
+      --surface: #FFFFFF;
+      --elevated: #F0F0EE;
+      --dark: #1B1B1B;
+      --accent: #2D6A2E;
+      --accent-dark: #1B5E20;
+      --accent-dim: rgba(45,106,46,0.10);
+      --red: #e63946;
+      --red-dim: rgba(230,57,70,0.08);
+      --amber: #f4a261;
+      --amber-dim: rgba(244,162,97,0.10);
+      --text: #0F0F0F;
+      --text-2: #555555;
+      --text-3: #999999;
+      --border: #E8E8E6;
+      --r: 12px; --r-sm: 8px;
+      --shadow: 0 1px 2px rgba(0,0,0,0.06), 0 4px 16px rgba(0,0,0,0.04);
+      --shadow-up: 0 8px 32px rgba(0,0,0,0.10);
+      --max: 1100px;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; font-size: 16px; }
+    body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; background: var(--bg); color: var(--text); line-height: 1.65; -webkit-font-smoothing: antialiased; }
+
+    /* TYPOGRAPHY */
+    h1 { font-size: clamp(1.8rem, 4vw, 3rem); font-weight: 800; line-height: 1.1; letter-spacing: -0.03em; }
+    h2 { font-size: clamp(1.4rem, 2.8vw, 2rem); font-weight: 700; line-height: 1.15; letter-spacing: -0.025em; }
+    h3 { font-size: 1rem; font-weight: 600; letter-spacing: -0.01em; }
+    p { color: var(--text-2); font-size: 0.93rem; line-height: 1.7; }
+    .lbl { font-size: 0.68rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-3); }
+
+    /* LAYOUT */
+    .wrap { max-width: var(--max); margin: 0 auto; padding: 0 2rem; }
+
+    /* HEADER */
+    .site-header {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 3.5rem 0 0;
+      text-align: center;
+    }
+    .header-eyebrow {
+      font-size: 0.65rem; font-weight: 600; letter-spacing: 0.18em;
+      text-transform: uppercase; color: var(--text-3); margin-bottom: 1.25rem;
+    }
+    .site-header h1 { margin-bottom: 0.75rem; }
+    .site-header h1 em { color: var(--accent); font-style: normal; font-weight: 800; }
+    .header-sub {
+      color: var(--text-2); font-size: 0.98rem; max-width: 620px;
+      margin: 0 auto 2rem; line-height: 1.7;
+    }
+    .header-stats {
+      display: flex; justify-content: center; gap: 0; border-top: 1px solid var(--border);
+      flex-wrap: wrap;
+    }
+    .hs {
+      padding: 1rem 1.75rem; text-align: center;
+      border-right: 1px solid var(--border); flex: 0 0 auto;
+    }
+    .hs:last-child { border-right: none; }
+    .hs-label { font-size: 0.6rem; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-3); margin-bottom: 0.15rem; }
+    .hs-value { font-size: 0.92rem; font-weight: 700; color: var(--text); }
+
+    /* TAB BAR */
+    .tab-bar {
+      position: sticky; top: 0; z-index: 100;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      overflow-x: auto; overflow-y: hidden;
+      scrollbar-width: none;
+      -webkit-overflow-scrolling: touch;
+    }
+    .tab-bar::-webkit-scrollbar { display: none; }
+    .tab-bar-inner {
+      max-width: var(--max); margin: 0 auto; padding: 0 1rem;
+      display: flex; align-items: stretch; gap: 0; min-width: max-content;
+    }
+    .stage-tab {
+      display: flex; align-items: center; gap: 0.4rem;
+      background: none; border: none; border-bottom: 2px solid transparent;
+      font-family: inherit; font-size: 0.74rem; font-weight: 500;
+      color: var(--text-3); padding: 0.8rem 0.7rem;
+      cursor: pointer; transition: all 0.18s; white-space: nowrap;
+    }
+    .stage-tab:hover { color: var(--text); }
+    .stage-tab.active { color: var(--text); border-bottom-color: var(--accent); font-weight: 600; }
+    .stage-dot {
+      width: 20px; height: 20px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.58rem; font-weight: 800; flex-shrink: 0;
+      background: var(--elevated); color: var(--text-3);
+      transition: all 0.18s;
+    }
+    .stage-tab.active .stage-dot {
+      background: var(--accent); color: #fff;
+    }
+
+    /* CONTENT PANEL */
+    main { min-height: 70vh; }
+    .stage-panel { display: none; padding: 3rem 0 4rem; animation: fadeUp 0.3s ease; }
+    .stage-panel.active { display: block; }
+    @keyframes fadeUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+    .stage-head { margin-bottom: 2.5rem; }
+    .stage-num {
+      font-size: clamp(3rem, 6vw, 5rem); font-weight: 800;
+      color: rgba(0,0,0,0.04); line-height: 1; letter-spacing: -0.04em;
+      margin-bottom: -0.5rem;
+    }
+    .stage-label { font-size: 0.62rem; font-weight: 700; letter-spacing: 0.15em; text-transform: uppercase; color: var(--accent-dark); margin-bottom: 0.4rem; display: block; }
+    .stage-head h2 { margin-bottom: 0.55rem; }
+    .stage-head p { max-width: 540px; }
+
+    /* REUSABLE COMPONENTS */
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r); padding: 1.65rem; box-shadow: var(--shadow); transition: transform 0.2s, box-shadow 0.2s; }
+    .card:hover { transform: translateY(-2px); box-shadow: var(--shadow-up); }
+    .card.bl-red { border-left: 3px solid var(--red); border-radius: 0 var(--r) var(--r) 0; }
+    .card.bl-teal { border-left: 3px solid var(--accent); border-radius: 0 var(--r) var(--r) 0; }
+    .card.bl-amber { border-left: 3px solid var(--amber); border-radius: 0 var(--r) var(--r) 0; }
+    .card.bl-navy { border-left: 3px solid var(--dark); border-radius: 0 var(--r) var(--r) 0; }
+    .card.bt-red { border-top: 3px solid var(--red); }
+    .card.bt-amber { border-top: 3px solid var(--amber); }
+    .card.bt-navy { border-top: 3px solid var(--dark); }
+    .card.bt-teal { border-top: 3px solid var(--accent); }
+    .g2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+    .g3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.5rem; }
+
+    /* Stat display */
+    .big-num { font-weight: 800; letter-spacing: -0.03em; line-height: 1.1; }
+    .big-num.red { color: var(--red); }
+    .big-num.teal { color: var(--accent); }
+    .big-num.amber { color: var(--amber); }
+    .big-num.navy { color: var(--dark); }
+
+    /* Quote */
+    .qblock { border-left: 3px solid var(--accent); padding: 1.1rem 1.4rem; background: var(--accent-dim); border-radius: 0 var(--r-sm) var(--r-sm) 0; }
+    .qblock.amber { border-left-color: var(--amber); background: var(--amber-dim); }
+    .qblock blockquote { font-size: 0.97rem; font-style: italic; color: var(--text); line-height: 1.75; margin-bottom: 0.45rem; }
+    .qblock cite { font-size: 0.73rem; font-weight: 700; color: var(--text-3); font-style: normal; letter-spacing: 0.04em; }
+
+    /* Cost bars */
+    .cost-bars { list-style: none; }
+    .cost-bar-item { margin-bottom: 0.85rem; }
+    .cost-bar-header { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 0.3rem; }
+    .cost-bar-label { font-size: 0.82rem; font-weight: 600; color: var(--text); }
+    .cost-bar-value { font-size: 0.82rem; font-weight: 700; color: var(--text-2); }
+    .cost-bar-track { height: 28px; background: var(--elevated); border-radius: 4px; overflow: hidden; position: relative; }
+    .cost-bar-fill { height: 100%; border-radius: 4px; display: flex; align-items: center; padding-left: 0.65rem; font-size: 0.68rem; font-weight: 700; color: #fff; letter-spacing: 0.03em; transition: width 0.6s ease; }
+    .cost-bar-fill.navy { background: var(--dark); }
+    .cost-bar-fill.amber { background: var(--amber); }
+
+    /* Flow diagram */
+    .flow { display: flex; align-items: stretch; gap: 0.5rem; overflow-x: auto; padding-bottom: 0.5rem; }
+    .fstep { flex: 1; background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-sm); padding: 0.9rem 1.1rem; text-align: center; min-width: 120px; }
+    .fstep .fn { font-size: 0.82rem; font-weight: 700; }
+    .fstep .fa { font-size: 0.67rem; color: var(--text-3); margin-top: 0.15rem; }
+    .farrow { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 0 0.2rem; flex-shrink: 0; }
+    .farrow .aa { font-size: 1rem; color: var(--text-3); line-height: 1; }
+
+    /* Timeline */
+    .tl-wrap { display: grid; grid-template-columns: repeat(3, 1fr); position: relative; }
+    .tl-wrap::before { content: ''; position: absolute; top: 27px; left: 8%; right: 8%; height: 2px; background: linear-gradient(90deg, var(--accent) 33%, var(--dark) 33%, var(--dark) 66%, #CCCCCC 66%); z-index: 0; }
+    .tl-phase { padding: 0 1rem; text-align: center; position: relative; }
+    .tl-dot { width: 54px; height: 54px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 1rem; margin: 0 auto 1.25rem; position: relative; z-index: 1; border: 3px solid var(--bg); }
+    .tl-dot.w1 { background: var(--accent); color: #fff; }
+    .tl-dot.w2 { background: var(--dark); color: #fff; }
+    .tl-dot.w3 { background: var(--elevated); color: var(--text-2); border-color: var(--border); }
+    .tl-phase .period { font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; color: var(--accent-dark); margin-bottom: 0.75rem; display: block; }
+    .tl-phase h3 { font-size: 0.95rem; margin-bottom: 0.5rem; }
+    .tl-phase ul { list-style: none; text-align: left; margin-top: 1rem; }
+    .tl-phase li { font-size: 0.8rem; color: var(--text-2); padding: 0.38rem 0; border-bottom: 1px solid var(--border); display: flex; gap: 0.45rem; align-items: baseline; }
+    .tl-phase li::before { content: '\2197'; color: var(--accent-dark); font-weight: 700; flex-shrink: 0; font-size: 0.75rem; }
+    .tl-phase li:last-child { border-bottom: none; }
+
+    /* KPI Grid */
+    .kpi-g { border: 1px solid var(--border); border-radius: var(--r); overflow: hidden; }
+    .kpi-head { display: grid; grid-template-columns: 2.5fr 1fr 1fr; }
+    .kpi-h { padding: 0.8rem 1.1rem; font-size: 0.68rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; }
+    .kpi-h.k0 { background: var(--dark); color: rgba(255,255,255,0.5); }
+    .kpi-h.k1 { background: var(--red); color: #fff; }
+    .kpi-h.k2 { background: var(--accent); color: #fff; }
+    .kpi-row { display: grid; grid-template-columns: 2.5fr 1fr 1fr; border-top: 1px solid var(--border); }
+    .kpi-c { padding: 0.8rem 1.1rem; font-size: 0.85rem; }
+    .kpi-c.lbl2 { color: var(--text-2); font-weight: 500; }
+    .kpi-c.val { font-weight: 700; text-align: center; }
+    .kpi-c.v-red { background: var(--red-dim); }
+    .kpi-c.v-teal { background: var(--accent-dim); }
+
+    /* Recommendation (dark) */
+    .rec-dark { background: var(--dark); border-radius: var(--r); padding: 2.5rem; margin-top: 1.5rem; }
+    .rec-dark h3 { color: #fff; font-size: 0.95rem; margin-bottom: 0.5rem; }
+    .rec-dark p { color: rgba(255,255,255,0.5); font-size: 0.88rem; }
+    .rec-dark .lbl { color: rgba(255,255,255,0.3); }
+
+    /* Buttons */
+    .btn {
+      display: inline-flex; align-items: center; gap: 0.4rem;
+      font-family: inherit; font-size: 0.82rem; font-weight: 700;
+      padding: 0.7rem 1.5rem; border-radius: var(--r-sm);
+      cursor: pointer; transition: all 0.18s; text-decoration: none;
+      border: none;
+    }
+    .btn-teal { background: var(--accent); color: #fff; }
+    .btn-teal:hover { background: var(--accent-dark); transform: translateY(-1px); }
+    .btn-outline { background: transparent; color: #fff; border: 1px solid rgba(255,255,255,0.2); }
+    .btn-outline:hover { border-color: rgba(255,255,255,0.5); background: rgba(255,255,255,0.05); }
+    .btn-navy { background: var(--dark); color: #fff; }
+    .btn-navy:hover { background: #111122; transform: translateY(-1px); }
+    .btn-ghost { background: var(--elevated); color: var(--text-2); border: 1px solid var(--border); }
+    .btn-ghost:hover { background: var(--border); }
+
+    /* Asset cards */
+    .asset-card { display: flex; flex-direction: column; justify-content: space-between; }
+    .asset-card .asset-body { flex: 1; }
+
+    /* Stat grid */
+    .stat-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.75rem; }
+    .stat-block { text-align: center; padding: 0.85rem; background: var(--elevated); border-radius: var(--r-sm); }
+    .stat-block .sv { font-size: 1.1rem; font-weight: 800; color: var(--dark); }
+    .stat-block .sl { font-size: 0.6rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-3); margin-top: 0.15rem; }
+
+    /* Validation callout */
+    .validation-list { list-style: none; }
+    .validation-list li { font-size: 0.86rem; color: var(--text-2); padding: 0.5rem 0; border-bottom: 1px solid var(--border); display: flex; gap: 0.5rem; align-items: baseline; }
+    .validation-list li::before { content: '\2713'; color: var(--accent); font-weight: 700; flex-shrink: 0; }
+    .validation-list li:last-child { border-bottom: none; }
+
+    /* Badges */
+    .badge { display: inline-flex; align-items: center; font-size: 0.63rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; padding: 0.22rem 0.55rem; border-radius: 4px; white-space: nowrap; }
+    .badge-teal { background: var(--accent-dim); color: var(--accent-dark); }
+    .badge-red { background: var(--red-dim); color: var(--red); }
+    .badge-amber { background: var(--amber-dim); color: var(--amber); }
+
+    /* Source tags */
+    .src-tag { font-size: 0.65rem; font-weight: 600; padding: 2px 8px; border-radius: 10px; margin-left: 4px; vertical-align: middle; letter-spacing: 0.02em; white-space: nowrap; }
+    .src-tag.verified { background: #d4edda; color: #155724; }
+    .src-tag.benchmark { background: #cce5ff; color: #004085; }
+    .src-tag.assumption { background: #fff3cd; color: #856404; }
+    .src-tag.demo { background: #e2e3e5; color: #383d41; }
+    a.src-tag { text-decoration: none; cursor: pointer; transition: opacity 0.15s; }
+    a.src-tag:hover { opacity: 0.75; text-decoration: underline; }
+
+    /* Sensitivity table */
+    .sens-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+    .sens-table th, .sens-table td { padding: 0.65rem 1rem; text-align: left; border-bottom: 1px solid var(--border); }
+    .sens-table th { font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-3); }
+    .sens-table tr.highlight { background: var(--amber-dim); font-weight: 600; }
+    .sens-table .tag { font-size: 0.65rem; padding: 2px 6px; border-radius: 3px; font-weight: 600; }
+    .sens-table .tag-low { background: var(--accent-dim); color: var(--accent-dark); }
+    .sens-table .tag-mid { background: var(--amber-dim); color: #856404; }
+    .sens-table .tag-high { background: var(--red-dim); color: var(--red); }
+
+    /* Footer */
+    footer { background: var(--dark); padding: 2.5rem 0; text-align: center; }
+    footer p { color: rgba(255,255,255,0.25); font-size: 0.76rem; line-height: 1.7; }
+    footer strong { color: var(--accent); font-weight: 700; }
+
+    /* Spacing helpers */
+    .mb-1 { margin-bottom: 1rem; }
+    .mb-1h { margin-bottom: 1.5rem; }
+    .mb-2 { margin-bottom: 2rem; }
+    .mb-2h { margin-bottom: 2.5rem; }
+    .mt-1 { margin-top: 1rem; }
+    .mt-1h { margin-top: 1.5rem; }
+    .mt-2 { margin-top: 2rem; }
+
+    /* RESPONSIVE */
+    @media (max-width: 1024px) {
+      .tl-wrap { grid-template-columns: 1fr; gap: 2rem; }
+      .tl-wrap::before { display: none; }
+      .stat-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+    @media (max-width: 768px) {
+      .wrap { padding: 0 1.25rem; }
+      .g2, .g3 { grid-template-columns: 1fr; }
+      .header-stats { flex-wrap: wrap; justify-content: center; }
+      .hs { border-bottom: 1px solid var(--border); flex: 0 0 auto; }
+      .flow { flex-direction: column; }
+      .kpi-head, .kpi-row { grid-template-columns: 1fr 1fr 1fr; }
+      .stat-grid { grid-template-columns: 1fr 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header class="site-header">
+  <div class="wrap">
+    <div class="header-eyebrow">Application Collateral &middot; Associate Director: Operations (Supply) &middot; March 2026</div>
+    <h1>Vendor Quality Intelligence Agent<br>for <em>Jumbotail</em></h1>
+    <p class="header-sub">Quantifying the hidden cost of vendor quality failure across procurement, warehouse operations, and working capital &mdash; with a methodology to drive weekly vendor accountability</p>
+  </div>
+  <div class="header-stats">
+    <div class="hs"><div class="hs-label">Rejection Rate</div><div class="hs-value">~18% <span class="src-tag assumption">Assumed</span></div></div>
+    <div class="hs"><div class="hs-label">Annual Cost</div><div class="hs-value">&#8377;60-80 Cr <span class="src-tag assumption">Derived</span></div></div>
+    <div class="hs"><div class="hs-label">Space Consumed</div><div class="hs-value">~4,200 sq ft/day <span class="src-tag assumption">Modelled</span></div></div>
+    <div class="hs"><div class="hs-label">Vendors Analyzed</div><div class="hs-value">20 Profiles <span class="src-tag demo">Synthetic</span></div></div>
+    <div class="hs"><div class="hs-label">Prepared By</div><div class="hs-value">Harsh Jain Ashok</div></div>
+  </div>
+</header>
+
+<!-- EXECUTIVE SUMMARY -->
+<div style="background:var(--surface); border-bottom:1px solid var(--border); padding:1.75rem 0;">
+  <div class="wrap" style="max-width:820px;">
+    <div style="border-left:3px solid var(--accent); padding-left:1.25rem;">
+      <p style="font-size:0.88rem; color:var(--text); margin-bottom:0.65rem;"><strong>What this is:</strong> I researched Jumbotail's supply chain operations and identified a problem not mentioned in the job description &mdash; the hidden cost of vendor quality failure in inbound supply. This document models what a systematic approach to measuring and reducing that cost could look like.</p>
+      <p style="font-size:0.88rem; color:var(--text); margin-bottom:0.65rem;"><strong>The hypothesis:</strong> At scale, vendor quality failures create distributed cost across procurement, logistics, warehouse labor, working capital, and floor space &mdash; but no single system surfaces the total. The fill rate holds because procurement over-orders to compensate.</p>
+      <p style="font-size:0.82rem; color:var(--text-3); font-style:italic;">All numbers are assumptions or benchmarks until validated with Jumbotail's actual data. The sensitivity analysis (Tab 1) shows the model holds across a range of rejection rates.</p>
+    </div>
+  </div>
+</div>
+
+<!-- TAB BAR -->
+<div class="tab-bar" id="tabBar">
+  <div class="tab-bar-inner">
+    <button class="stage-tab active" data-stage="s1"><span class="stage-dot">1</span> The Problem</button>
+    <button class="stage-tab" data-stage="s2"><span class="stage-dot">2</span> Space Impact</button>
+    <button class="stage-tab" data-stage="s3"><span class="stage-dot">3</span> The Data</button>
+    <button class="stage-tab" data-stage="s4"><span class="stage-dot">4</span> Ops Playbook</button>
+    <button class="stage-tab" data-stage="s5"><span class="stage-dot">5</span> Targets</button>
+    <button class="stage-tab" data-stage="s6"><span class="stage-dot">6</span> Prototype</button>
+  </div>
+</div>
+
+<!-- MAIN CONTENT -->
+<main>
+
+<!-- ═══ TAB 1: THE PROBLEM ═══ -->
+<div class="stage-panel active" id="s1">
+  <div class="wrap">
+    <div class="stage-head">
+      <div class="stage-num">01</div>
+      <span class="stage-label">The Hidden Cost</span>
+      <h2>&#8377;60-80 Cr: The Estimated Cost of Vendor Quality Failure at Scale</h2>
+    </div>
+
+    <!-- Two stat cards -->
+    <div class="g2 mb-2">
+      <div class="card bl-red">
+        <div class="lbl" style="margin-bottom:0.5rem;">Estimated Annual Cost of Quality Failure <span class="src-tag assumption">Derived</span></div>
+        <div class="big-num red" style="font-size: 2.4rem;">&#8377;60-80 Cr</div>
+        <p style="margin-top:0.5rem; font-size:0.82rem;">Across 5 cost buckets &mdash; procurement buffer, logistics waste, warehouse labor, working capital, and space consumption</p>
+        <p style="margin-top:0.3rem; font-size:0.72rem; color:var(--text-3); font-style:italic;">Derived from assumed 18% rejection rate &times; benchmark unit costs. Actual figures depend on Jumbotail's specific cost structure.</p>
+      </div>
+      <div class="card bl-teal">
+        <div class="lbl" style="margin-bottom:0.5rem;">Fill Rate Maintained <a href="https://www.8thandwalton.com/blog/walmart-otif/" target="_blank" class="src-tag benchmark">Walmart OTIF Standard</a></div>
+        <div class="big-num teal" style="font-size: 2.4rem;">97%+</div>
+        <p style="margin-top:0.5rem; font-size:0.82rem;">Rejection is hidden, not absent. The fill rate holds because procurement over-orders to compensate for expected vendor failure.</p>
+      </div>
+    </div>
+
+    <!-- Body paragraphs -->
+    <div style="max-width:740px; margin-bottom:2rem;">
+      <p class="mb-1">Jumbotail's disclosed FY23 GMV of &#8377;2,262 Cr <a href="https://jumbotail.com/news-room/jumbotail-doubles-gmv-to-rs-2262-crore-in-fy23/" target="_blank" class="src-tag verified">Public Filing</a> provides the volume baseline. At every fulfilment centre, inbound stock goes through a multi-point quality audit: weight accuracy, packaging integrity, expiry dating, label compliance, temperature verification, and visual inspection.</p>
+      <p class="mb-1">Industry benchmarks across B2B grocery platforms suggest that roughly 18% of inbound shipments fail one or more checks <a href="https://www.downtoearth.org.in/governance/as-told-to-parliament-august-6-2024-4-8-grains-5-15-fruits-vegetables-lost-after-harvest" target="_blank" class="src-tag benchmark">NABCONS/Lok Sabha 2024</a>. Jumbotail's actual rate may be higher or lower &mdash; confirming this number is the first operational priority.</p>
+      <p class="mb-1">No single system currently surfaces this cost. The rejection is real, the cost is distributed across five buckets (detailed below), and the operational response &mdash; over-ordering &mdash; masks the root cause from standard reporting dashboards.</p>
+    </div>
+
+    <!-- Sensitivity analysis -->
+    <div class="card mb-2h" style="padding:1.75rem;">
+      <div class="lbl" style="display:block; margin-bottom:0.75rem;">Sensitivity Analysis &mdash; What if the Rejection Rate is Different?</div>
+      <table class="sens-table">
+        <thead><tr><th>Rejection Rate</th><th>Estimated Annual Cost</th><th>Scenario</th></tr></thead>
+        <tbody>
+          <tr><td>12%</td><td>&#8377;40&ndash;53 Cr</td><td><span class="tag tag-low">Optimistic</span></td></tr>
+          <tr><td>15%</td><td>&#8377;50&ndash;67 Cr</td><td><span class="tag tag-mid">Moderate</span></td></tr>
+          <tr class="highlight"><td>18%</td><td>&#8377;60&ndash;80 Cr</td><td><span class="tag tag-mid">Working Estimate</span></td></tr>
+          <tr><td>22%</td><td>&#8377;73&ndash;98 Cr</td><td><span class="tag tag-high">Pessimistic</span></td></tr>
+        </tbody>
+      </table>
+      <p style="font-size:0.78rem; color:var(--text-3); margin-top:0.75rem; font-style:italic;">The exact number matters less than the order of magnitude. Even at 12%, the cost justifies systematic intervention. The first operational step is measuring Jumbotail's actual rejection rate across top 50 vendors.</p>
+    </div>
+
+    <!-- Cost breakdown visual -->
+    <div class="card" style="padding:1.75rem;">
+      <div class="lbl" style="display:block; margin-bottom:1.25rem;">Cost Breakdown &mdash; Five Buckets of Quality Failure <span class="src-tag assumption">Modelled</span></div>
+      <ul class="cost-bars">
+        <li class="cost-bar-item">
+          <div class="cost-bar-header">
+            <span class="cost-bar-label">Over-procurement Buffer <a href="https://sievo.com/blog/fmcg-procurement-industry-benchmarks" target="_blank" class="src-tag benchmark" style="font-size:0.58rem;">8% of rejected value</a></span>
+            <span class="cost-bar-value">&#8377;20-25 Cr &middot; 35%</span>
+          </div>
+          <div class="cost-bar-track"><div class="cost-bar-fill navy" style="width:35%;">35%</div></div>
+        </li>
+        <li class="cost-bar-item">
+          <div class="cost-bar-header">
+            <span class="cost-bar-label">Warehouse Labor on Returns <a href="https://www.extensiv.com/resource-library/report/third-party-logistics-warehouse-benchmark-report" target="_blank" class="src-tag benchmark" style="font-size:0.58rem;">&#8377;4.50/unit</a></span>
+            <span class="cost-bar-value">&#8377;15-20 Cr &middot; 25%</span>
+          </div>
+          <div class="cost-bar-track"><div class="cost-bar-fill navy" style="width:25%;">25%</div></div>
+        </li>
+        <li class="cost-bar-item">
+          <div class="cost-bar-header">
+            <span class="cost-bar-label">Inbound Logistics Waste</span>
+            <span class="cost-bar-value">&#8377;12-15 Cr &middot; 20%</span>
+          </div>
+          <div class="cost-bar-track"><div class="cost-bar-fill navy" style="width:20%;">20%</div></div>
+        </li>
+        <li class="cost-bar-item">
+          <div class="cost-bar-header">
+            <span class="cost-bar-label">Warehouse Space Consumption <a href="https://www.jll.com/en-in/newsroom/indias-logistics-absorption-hits-504m-sq-ft-record-in-2024" target="_blank" class="src-tag benchmark" style="font-size:0.58rem;">&#8377;20-30/sq ft/mo</a></span>
+            <span class="cost-bar-value">&#8377;5-8 Cr &middot; 9%</span>
+          </div>
+          <div class="cost-bar-track"><div class="cost-bar-fill amber" style="width:9%;">9%</div></div>
+        </li>
+        <li class="cost-bar-item">
+          <div class="cost-bar-header">
+            <span class="cost-bar-label">Working Capital Lock-up <a href="https://www.rbi.org.in/rbi-sourcefiles/lendingrate/LendingRates.aspx" target="_blank" class="src-tag benchmark" style="font-size:0.58rem;">18% CoC</a></span>
+            <span class="cost-bar-value">&#8377;3-5 Cr &middot; 7%</span>
+          </div>
+          <div class="cost-bar-track"><div class="cost-bar-fill navy" style="width:7%;">7%</div></div>
+        </li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ TAB 2: SPACE IMPACT ═══ -->
+<div class="stage-panel" id="s2">
+  <div class="wrap">
+    <div class="stage-head">
+      <div class="stage-num">02</div>
+      <span class="stage-label">The Constraint</span>
+      <h2>Warehouse Space: The Binding Bottleneck</h2>
+    </div>
+
+    <!-- Hero stat -->
+    <div class="card bl-amber mb-2" style="text-align:center; padding:2.25rem;">
+      <div class="big-num amber" style="font-size: 2.8rem;">~4,200 sq ft <span class="src-tag assumption">Modelled</span></div>
+      <div class="lbl" style="display:block; margin-top:0.5rem; margin-bottom:0.75rem;">Estimated daily FC floor space consumed by rejected vendor stock</div>
+      <p style="font-size:0.85rem; max-width:580px; margin:0 auto;">At &#8377;20&ndash;30 per sq ft per month <a href="https://www.jll.com/en-in/newsroom/indias-logistics-absorption-hits-504m-sq-ft-record-in-2024" target="_blank" class="src-tag benchmark">JLL India 2024</a>, this space has a carrying cost &mdash; and more importantly, it cannot receive new inbound stock from performing vendors.</p>
+      <p style="font-size:0.72rem; color:var(--text-3); margin-top:0.65rem; font-style:italic;">Assumes 18% rejection, 5-day vendor pickup <span class="src-tag assumption">Standard SLA</span>, standard racking. Actual dwell time varies by vendor and region. This is a directional estimate &mdash; Week 1 validation would measure actual bay utilisation.</p>
+    </div>
+
+    <!-- Body paragraph -->
+    <div style="max-width:740px; margin-bottom:2rem;">
+      <p>Warehouse floor space has a hard ceiling. Every square foot occupied by rejected inventory is unavailable for receivable stock or throughput. When a shipment fails audit, it enters a hold bay and sits for 3&ndash;7 days until vendor pickup <span class="src-tag assumption">Standard SLA</span>. At an estimated 18% rejection rate, this locks ~4,200 sq ft daily across FCs &mdash; capacity that should be earning throughput.</p>
+    </div>
+
+    <!-- Rice vendor callout -->
+    <div class="qblock amber mb-2">
+      <blockquote>"A vendor supplying rice at a 31% rejection rate occupies roughly 840 sq ft of FC floor space daily, assuming a 5-day pickup window. That is one vendor, one SKU category, consuming floor space that could hold 3&ndash;4 days of receivable inventory from a compliant supplier."</blockquote>
+      <cite>Illustrative example using synthetic vendor data <span class="src-tag demo">Synthetic</span></cite>
+    </div>
+
+    <!-- Flow diagram -->
+    <div class="lbl" style="display:block; margin-bottom:1rem;">The Reject-to-Space Chain</div>
+    <div class="flow mb-2">
+      <div class="fstep"><div class="fn">Shipment Arrives</div><div class="fa">Vendor PO received</div></div>
+      <div class="farrow"><div class="aa">&rarr;</div></div>
+      <div class="fstep" style="border-color:var(--red);"><div class="fn">Audit Fails</div><div class="fa">1+ of 6 checks</div></div>
+      <div class="farrow"><div class="aa">&rarr;</div></div>
+      <div class="fstep" style="border-color:var(--amber);"><div class="fn">Reject Bay</div><div class="fa">Hold for vendor pickup</div></div>
+      <div class="farrow"><div class="aa">&rarr;</div></div>
+      <div class="fstep" style="border-color:var(--amber);"><div class="fn">5+ Day Dwell</div><div class="fa">Avg vendor response</div></div>
+      <div class="farrow"><div class="aa">&rarr;</div></div>
+      <div class="fstep" style="background:var(--amber-dim); border-color:var(--amber);"><div class="fn">~4,200 sq ft Locked</div><div class="fa">Daily across FCs</div></div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ═══ TAB 3: WHAT THE DATA REVEALS ═══ -->
+<div class="stage-panel" id="s3">
+  <div class="wrap">
+    <div class="stage-head">
+      <div class="stage-num">03</div>
+      <span class="stage-label">What the Data Reveals</span>
+      <h2>Four Operational Insights from One Data Pipeline</h2>
+    </div>
+
+    <p style="margin-bottom:2rem; max-width:640px;">The VQIA system takes inward audit data that already exists in Jumbotail's warehouse management systems and transforms it into four actionable insights that procurement and warehouse operations teams can act on immediately.</p>
+
+    <!-- 2x2 insight grid -->
+    <div class="g2 mb-2">
+      <div class="card bt-red">
+        <div style="font-size:1.3rem; margin-bottom:0.5rem;">&#8377;</div>
+        <h3 style="margin-bottom:0.35rem;">Where the Money Actually Goes</h3>
+        <p style="font-size:0.86rem;">Every rejected shipment creates cost across five buckets: the buffer procurement ordered to compensate, the logistics spent delivering non-conforming stock, the labor to sort and restack, the capital locked in dwell inventory, and the warehouse space consumed. This system attributes each rupee to the specific vendor responsible &mdash; giving procurement a cost-per-vendor number to negotiate with.</p>
+      </div>
+      <div class="card bt-amber">
+        <div style="font-size:1.3rem; margin-bottom:0.5rem;">&#9633;</div>
+        <h3 style="margin-bottom:0.35rem;">Which Vendors Consume Warehouse Capacity</h3>
+        <p style="font-size:0.86rem;">Connects daily sq ft consumed by rejected stock to specific vendor behavior. A rice vendor rejecting 31% of PO volume at 2.5 cu ft per bag consumes ~840 sq ft daily &mdash; space that should be earning throughput. This isn't a procurement metric; it's a warehouse operations metric that happens to have a procurement-side fix.</p>
+      </div>
+      <div class="card bt-navy">
+        <div style="font-size:1.3rem; margin-bottom:0.5rem;">&#9678;</div>
+        <h3 style="margin-bottom:0.35rem;">Vendor Risk Stratification</h3>
+        <p style="font-size:0.86rem;">Scores vendors across six quality dimensions (weight accuracy, packaging, expiry compliance, PO accuracy, MRP, invoicing) weighted by operational impact. Classifies into RED / AMBER / GREEN tiers with trend direction, so the operations team knows not just who's failing today, but who's deteriorating. The weekly review starts with RED vendors &mdash; the rest are monitored, not managed.</p>
+      </div>
+      <div class="card bt-teal">
+        <div style="font-size:1.3rem; margin-bottom:0.5rem;">&rarr;</div>
+        <h3 style="margin-bottom:0.35rem;">Vendor-Specific Interventions</h3>
+        <p style="font-size:0.86rem;">For each RED vendor: a specific diagnosis (which dimensions are failing), recommended PO action (cap at 50%, dual-source, hold), SLA enforcement steps, and space recovery impact. These aren't generic recommendations &mdash; they're the talking points an operations lead uses in the vendor review meeting on Monday morning.</p>
+      </div>
+    </div>
+
+    <!-- Bridge -->
+    <p style="margin-bottom:1.5rem; max-width:640px;">But a system without an operating rhythm is just a dashboard. The next section describes how this becomes a weekly vendor accountability mechanism &mdash; with escalation paths, SLA frameworks, and a penalty structure that drives compliance.</p>
+
+    <!-- Dark section -->
+    <div class="rec-dark" style="text-align:center;">
+      <div class="lbl" style="display:block; margin-bottom:0.75rem; color:rgba(255,255,255,0.3);">Working Prototype</div>
+      <h3 style="font-size:1.15rem; margin-bottom:0.5rem;">See the methodology in action on synthetic vendor data</h3>
+      <p style="margin-bottom:1.5rem;">Run the analysis on 20 synthetic vendor profiles and see cost attribution, space impact, risk scores, and vendor-specific action briefs generated in real time.</p>
+      <div style="display:flex; gap:1rem; justify-content:center; flex-wrap:wrap;">
+        <a href="https://pg26-n8n.mesaschool.co.in/webhook/vqia" target="_blank" class="btn btn-teal">View Prototype &rarr;</a>
+        <a href="#" class="btn btn-outline">Watch 90-sec Loom &rarr;</a>
+      </div>
+      <p style="font-size:0.72rem; color:rgba(255,255,255,0.3); margin-top:1.25rem;">Built on synthetic but operationally realistic vendor data <span class="src-tag demo" style="font-size:0.55rem;">Synthetic</span></p>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ TAB 4: OPS PLAYBOOK ═══ -->
+<div class="stage-panel" id="s4">
+  <div class="wrap">
+    <div class="stage-head">
+      <div class="stage-num">04</div>
+      <span class="stage-label">The Operating Rhythm</span>
+      <h2>From Data to Weekly Vendor Accountability</h2>
+    </div>
+
+    <p style="margin-bottom:2rem; max-width:640px;">A system is only valuable if it changes decisions. The operating rhythm below is designed to embed into Jumbotail's existing cadence &mdash; not to create a new one. Vendor quality becomes a standing agenda item with clear escalation paths, defined SLAs, and consequence structures.</p>
+
+    <!-- Week 1 Validation -->
+    <div class="card bl-navy mb-2h">
+      <div class="lbl" style="display:block; margin-bottom:0.75rem;">What I'd Confirm in Week 1</div>
+      <h3 style="margin-bottom:0.75rem;">First-Week Diagnostic Agenda</h3>
+      <ul class="validation-list">
+        <li>Actual rejection rate across top 50 vendors (is it 18%? 12%? 25%?)</li>
+        <li>Average dwell time for rejected stock (5 days or closer to 10?)</li>
+        <li>Whether rejection bays are dedicated or shared with staging areas</li>
+        <li>Vendor pickup SLA terms vs. actual compliance &mdash; what's contractual vs. habitual</li>
+        <li>FSSAI non-compliance frequency and categories (MFG date, labelling, batch traceability)</li>
+        <li>Palletisation standards for bulk staples vs. FMCG cartons &mdash; impacts space calculation</li>
+        <li>Current over-procurement buffer logic: fixed %, category-specific, or buyer-discretion?</li>
+        <li>Who currently owns vendor quality accountability &mdash; procurement, warehouse ops, or QA?</li>
+      </ul>
+    </div>
+
+    <!-- Timeline -->
+    <div class="lbl" style="display:block; margin-bottom:1.5rem;">Three-Phase Operating Rhythm</div>
+    <div class="tl-wrap mb-2h">
+      <div class="tl-phase">
+        <div class="tl-dot w1">1</div>
+        <span class="period">Weeks 1-4</span>
+        <h3>Baseline &amp; Calibration</h3>
+        <ul>
+          <li>Calibrate rejection rates against actual FC data from 2&ndash;3 centres</li>
+          <li>Build vendor-level cost attribution across all 5 buckets</li>
+          <li>Map space consumption to specific vendors and SKU categories</li>
+          <li>Establish formal vendor quality SLAs where none exist</li>
+          <li>Classify root causes for top 10 vendors by rejection volume</li>
+        </ul>
+      </div>
+      <div class="tl-phase">
+        <div class="tl-dot w2">2</div>
+        <span class="period">Ongoing</span>
+        <h3>Weekly Vendor Review</h3>
+        <ul>
+          <li>Run vendor quality scorecard every Monday for all active vendors</li>
+          <li>RED vendors &rarr; escalate within 48 hrs with specific corrective action</li>
+          <li>AMBER vendors &rarr; issue formal improvement notice with 30-day deadline</li>
+          <li>Track week-over-week trend; trigger dual-sourcing for persistent RED</li>
+        </ul>
+      </div>
+      <div class="tl-phase">
+        <div class="tl-dot w3">3</div>
+        <span class="period">Quarterly</span>
+        <h3>Governance &amp; Consequences</h3>
+        <ul>
+          <li>Quarterly vendor performance review with procurement &amp; category leads</li>
+          <li>Execute penalty structure: reduce PO, probation, or delist for persistent non-compliance</li>
+          <li>Report cost recovery: rejected cost avoided + warehouse space freed</li>
+          <li>Recommend vendor additions, dual-sourcing, or SLA restructuring</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- SLA Framework -->
+    <div class="card bl-teal mb-2">
+      <div class="lbl" style="display:block; margin-bottom:0.75rem;">Vendor Response SLA Framework</div>
+      <h3 style="margin-bottom:0.75rem;">Structured Escalation Timelines</h3>
+      <div class="g3" style="gap:1rem;">
+        <div style="text-align:center; padding:1rem; background:var(--accent-dim); border-radius:var(--r-sm);">
+          <div style="font-size:1.4rem; font-weight:800; color:var(--accent);">48h</div>
+          <div style="font-size:0.78rem; font-weight:600; margin-top:0.3rem;">Acknowledgment</div>
+          <div style="font-size:0.72rem; color:var(--text-3); margin-top:0.2rem;">Vendor confirms receipt of quality notice</div>
+        </div>
+        <div style="text-align:center; padding:1rem; background:var(--amber-dim); border-radius:var(--r-sm);">
+          <div style="font-size:1.4rem; font-weight:800; color:var(--amber);">7 days</div>
+          <div style="font-size:0.78rem; font-weight:600; margin-top:0.3rem;">Corrective Action Plan</div>
+          <div style="font-size:0.72rem; color:var(--text-3); margin-top:0.2rem;">Written root-cause analysis + remediation steps</div>
+        </div>
+        <div style="text-align:center; padding:1rem; background:var(--red-dim); border-radius:var(--r-sm);">
+          <div style="font-size:1.4rem; font-weight:800; color:var(--red);">30 days</div>
+          <div style="font-size:0.78rem; font-weight:600; margin-top:0.3rem;">Resolution</div>
+          <div style="font-size:0.72rem; color:var(--text-3); margin-top:0.2rem;">Measured improvement or consequence escalation</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Vendor Penalty Structure -->
+    <div class="card bl-red mb-2">
+      <div class="lbl" style="display:block; margin-bottom:0.75rem;">Progressive Consequence Structure</div>
+      <h3 style="margin-bottom:0.75rem;">Vendor Non-Compliance Penalty Ladder</h3>
+      <div style="display:flex; flex-direction:column; gap:0.65rem;">
+        <div style="display:flex; align-items:center; gap:0.75rem; padding:0.6rem 0; border-bottom:1px solid var(--border);">
+          <span class="badge badge-amber">Level 1</span>
+          <div><span style="font-size:0.86rem; font-weight:600;">Formal Warning</span><span style="font-size:0.78rem; color:var(--text-2);"> &mdash; Written notice with documented deficiencies and improvement timeline</span></div>
+        </div>
+        <div style="display:flex; align-items:center; gap:0.75rem; padding:0.6rem 0; border-bottom:1px solid var(--border);">
+          <span class="badge badge-amber">Level 2</span>
+          <div><span style="font-size:0.86rem; font-weight:600;">PO Volume Reduction</span><span style="font-size:0.78rem; color:var(--text-2);"> &mdash; Cap at 50-70% of current volume, activate dual-source backup</span></div>
+        </div>
+        <div style="display:flex; align-items:center; gap:0.75rem; padding:0.6rem 0; border-bottom:1px solid var(--border);">
+          <span class="badge badge-red">Level 3</span>
+          <div><span style="font-size:0.86rem; font-weight:600;">Probation</span><span style="font-size:0.78rem; color:var(--text-2);"> &mdash; 30-day monitored period with weekly audits and mandatory corrective action</span></div>
+        </div>
+        <div style="display:flex; align-items:center; gap:0.75rem; padding:0.6rem 0;">
+          <span class="badge badge-red">Level 4</span>
+          <div><span style="font-size:0.86rem; font-weight:600;">Delist</span><span style="font-size:0.78rem; color:var(--text-2);"> &mdash; Remove from approved vendor list pending full re-qualification audit</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Root-Cause Categories + Escalation -->
+    <div class="g2 mb-2">
+      <div class="card">
+        <div class="lbl" style="display:block; margin-bottom:0.75rem;">Root-Cause Classification</div>
+        <h3 style="margin-bottom:0.75rem;">Rejection Categories</h3>
+        <ul class="validation-list">
+          <li>Material defect &mdash; substandard raw material, adulteration, moisture</li>
+          <li>Weight variance &mdash; short-fill, scale calibration, inconsistent bagging</li>
+          <li>MFG date / expiry non-compliance &mdash; FSSAI regulatory risk</li>
+          <li>Transit damage &mdash; packaging failure, temperature excursion</li>
+          <li>Documentation error &mdash; invoice mismatch, missing batch records</li>
+          <li>Expiry proximity &mdash; delivered within 60% of shelf life consumed</li>
+        </ul>
+      </div>
+      <div class="card">
+        <div class="lbl" style="display:block; margin-bottom:0.75rem;">Escalation Matrix</div>
+        <h3 style="margin-bottom:0.75rem;">Who Owns What</h3>
+        <ul class="validation-list">
+          <li><strong>GREEN vendors</strong> &mdash; Category Manager monitors, no action needed</li>
+          <li><strong>AMBER vendors</strong> &mdash; Category Manager issues improvement notice</li>
+          <li><strong>RED vendors</strong> &mdash; Head of Procurement reviews within 48 hrs</li>
+          <li><strong>CRITICAL space risk</strong> &mdash; VP Supply Chain + warehouse ops joint review</li>
+          <li><strong>FSSAI non-compliance</strong> &mdash; Immediate escalation, regulatory risk flag</li>
+          <li><strong>Persistent RED (3+ weeks)</strong> &mdash; Dual-source activation + penalty Level 2+</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- FSSAI Compliance -->
+    <div style="max-width:740px; margin-bottom:2rem;">
+      <p style="font-size:0.86rem;"><strong>FSSAI compliance is treated as a hard gate, not a scoring dimension.</strong> One regulatory notice on manufacturing date non-compliance or batch traceability failure impacts the entire category operation. The vendor quality system must flag these as immediate escalations, not trend items.</p>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ TAB 5: TARGETS ═══ -->
+<div class="stage-panel" id="s5">
+  <div class="wrap">
+    <div class="stage-head">
+      <div class="stage-num">05</div>
+      <span class="stage-label">Diagnostic Targets</span>
+      <h2>Metrics for the First 90 Days</h2>
+    </div>
+
+    <p style="margin-bottom:2rem; max-width:640px;">These are the metrics I would instrument and begin moving &mdash; framed as diagnostic targets, not delivery commitments, because the first step is getting real baselines. The 90-day horizon is for establishing measurement infrastructure and initiating corrective action, not for claiming full ROI.</p>
+
+    <!-- KPI grid -->
+    <div class="kpi-g mb-2">
+      <div class="kpi-head">
+        <div class="kpi-h k0">Metric</div>
+        <div class="kpi-h k1">Baseline <span class="src-tag assumption" style="font-size:0.55rem;">Estimated</span></div>
+        <div class="kpi-h k2">90-Day Direction</div>
+      </div>
+      <div class="kpi-row">
+        <div class="kpi-c lbl2">Inward rejection rate</div>
+        <div class="kpi-c val v-red">~18% (to be confirmed)</div>
+        <div class="kpi-c val v-teal">Measured + trending down</div>
+      </div>
+      <div class="kpi-row">
+        <div class="kpi-c lbl2">FC floor space consumed by rejects</div>
+        <div class="kpi-c val v-red">~4,200 sq ft/day (modelled)</div>
+        <div class="kpi-c val v-teal">Measured + &lt; 65% of baseline</div>
+      </div>
+      <div class="kpi-row">
+        <div class="kpi-c lbl2">Vendor SLA compliance rate</div>
+        <div class="kpi-c val v-red">Untracked</div>
+        <div class="kpi-c val v-teal">Instrumented + 90%+ tracked</div>
+      </div>
+      <div class="kpi-row">
+        <div class="kpi-c lbl2">Over-procurement buffer cost</div>
+        <div class="kpi-c val v-red">To be baselined</div>
+        <div class="kpi-c val v-teal">Visible + reduction initiated</div>
+      </div>
+      <div class="kpi-row">
+        <div class="kpi-c lbl2">Rejected stock dwell time</div>
+        <div class="kpi-c val v-red">~5 days (assumed)</div>
+        <div class="kpi-c val v-teal">Measured + vendor SLAs enforced</div>
+      </div>
+      <div class="kpi-row">
+        <div class="kpi-c lbl2">RED vendor count</div>
+        <div class="kpi-c val v-red">To be baselined</div>
+        <div class="kpi-c val v-teal">Tracked + weekly review cadence</div>
+      </div>
+      <div class="kpi-row">
+        <div class="kpi-c lbl2">FSSAI compliance incidents</div>
+        <div class="kpi-c val v-red">Untracked</div>
+        <div class="kpi-c val v-teal">Zero tolerance + documented</div>
+      </div>
+    </div>
+
+    <p style="max-width:640px;">Whether these targets are achievable depends on Jumbotail's specific vendor mix, category distribution, and operational constraints. The purpose of the first 90 days is to confirm the baselines with real data, identify which levers are highest-impact, and begin moving the metrics that matter most to warehouse throughput and procurement cost efficiency. These are directional, not contractual.</p>
+  </div>
+</div>
+
+<!-- ═══ TAB 6: PROTOTYPE ═══ -->
+<div class="stage-panel" id="s6">
+  <div class="wrap">
+    <div class="stage-head">
+      <div class="stage-num">06</div>
+      <span class="stage-label">Available Assets</span>
+      <h2>Prototype: Methodology in Action</h2>
+    </div>
+
+    <div class="g3">
+      <!-- Card 1: Live Demo -->
+      <div class="card bt-teal asset-card">
+        <div class="asset-body">
+          <div class="badge badge-teal" style="margin-bottom:0.75rem;">Primary</div>
+          <h3 style="margin-bottom:0.5rem;">Vendor Quality Scoring Prototype</h3>
+          <p style="font-size:0.86rem; margin-bottom:1.25rem;">I prototyped the scoring methodology on synthetic data to demonstrate how the analysis would work &mdash; cost attribution, space impact, risk scores, and vendor-specific action briefs across 20 vendor profiles.</p>
+        </div>
+        <a href="https://pg26-n8n.mesaschool.co.in/webhook/vqia" target="_blank" class="btn btn-teal" style="width:100%; justify-content:center;">View Prototype &rarr;</a>
+      </div>
+
+      <!-- Card 2: Loom -->
+      <div class="card bt-navy asset-card">
+        <div class="asset-body">
+          <div class="badge" style="background:rgba(26,26,46,0.08); color:var(--dark); margin-bottom:0.75rem;">Video</div>
+          <h3 style="margin-bottom:0.5rem;">90-Second Walkthrough</h3>
+          <p style="font-size:0.86rem; margin-bottom:1.25rem;">Covers: cost quantification methodology, vendor risk stratification, space impact analysis, and how this informs a weekly vendor review meeting.</p>
+        </div>
+        <a href="#" class="btn btn-navy" style="width:100%; justify-content:center;">Watch Loom &rarr;</a>
+      </div>
+
+      <!-- Card 3: PRD -->
+      <div class="card asset-card" style="border-top: 3px solid var(--text-3);">
+        <div class="asset-body">
+          <div class="badge" style="background:var(--elevated); color:var(--text-3); border:1px solid var(--border); margin-bottom:0.75rem;">Document</div>
+          <h3 style="margin-bottom:0.5rem;">Full Requirements Document</h3>
+          <p style="font-size:0.86rem; margin-bottom:1.25rem;">Complete specification covering vendor scoring methodology, cost model derivation, operating rhythm design, and implementation plan. Available on request.</p>
+        </div>
+        <a href="mailto:harsh_ashok@pg26.mesaschool.co?subject=VQIA%20PRD%20Request" class="btn btn-ghost" style="width:100%; justify-content:center;">Request Document &rarr;</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+</main>
+
+<!-- SOURCES -->
+<section style="background:var(--elevated); border-top:1px solid var(--border); padding:2rem 0;">
+  <div class="wrap" style="max-width:820px;">
+    <div class="lbl" style="display:block; margin-bottom:1rem;">Sources &amp; References</div>
+    <ol style="list-style:none; counter-reset:ref; padding:0; margin:0;">
+      <li style="font-size:0.75rem; color:var(--text-2); padding:0.35rem 0; border-bottom:1px solid var(--border); counter-increment:ref; display:flex; gap:0.5rem;">
+        <span style="font-weight:700; color:var(--text-3); min-width:1.2rem;">[1]</span>
+        <span>Jumbotail, &ldquo;Jumbotail doubles GMV to &#8377;2,262 crores in FY23,&rdquo; Press Release, May 2023. <a href="https://jumbotail.com/news-room/jumbotail-doubles-gmv-to-rs-2262-crore-in-fy23/" target="_blank" style="color:var(--accent-dark);">Link</a></span>
+      </li>
+      <li style="font-size:0.75rem; color:var(--text-2); padding:0.35rem 0; border-bottom:1px solid var(--border); display:flex; gap:0.5rem;">
+        <span style="font-weight:700; color:var(--text-3); min-width:1.2rem;">[2]</span>
+        <span>Ministry of Food Processing Industries / NABCONS, &ldquo;All-India Post-Harvest Loss Survey,&rdquo; 2022. Presented to Lok Sabha, Aug 2024. Crop losses: cereals 3.89&ndash;5.92%, fruits 6.02&ndash;15.05%, vegetables 4.87&ndash;11.61%. <a href="https://www.downtoearth.org.in/governance/as-told-to-parliament-august-6-2024-4-8-grains-5-15-fruits-vegetables-lost-after-harvest" target="_blank" style="color:var(--accent-dark);">Link</a></span>
+      </li>
+      <li style="font-size:0.75rem; color:var(--text-2); padding:0.35rem 0; border-bottom:1px solid var(--border); display:flex; gap:0.5rem;">
+        <span style="font-weight:700; color:var(--text-3); min-width:1.2rem;">[3]</span>
+        <span>Press Information Bureau (PIB), Government of India, &ldquo;Post Harvest Food Loss,&rdquo; citing NABCONS study. Total loss: &#8377;1,52,790 Cr annually. <a href="https://www.pib.gov.in/PressReleaseIframePage.aspx?PRID=1885038" target="_blank" style="color:var(--accent-dark);">Link</a></span>
+      </li>
+      <li style="font-size:0.75rem; color:var(--text-2); padding:0.35rem 0; border-bottom:1px solid var(--border); display:flex; gap:0.5rem;">
+        <span style="font-weight:700; color:var(--text-3); min-width:1.2rem;">[4]</span>
+        <span>Reserve Bank of India (RBI), &ldquo;Weighted Average Lending Rates &mdash; Outstanding &amp; Fresh Rupee Loans,&rdquo; 2024&ndash;25. <a href="https://www.rbi.org.in/rbi-sourcefiles/lendingrate/LendingRates.aspx" target="_blank" style="color:var(--accent-dark);">Link</a></span>
+      </li>
+      <li style="font-size:0.75rem; color:var(--text-2); padding:0.35rem 0; border-bottom:1px solid var(--border); display:flex; gap:0.5rem;">
+        <span style="font-weight:700; color:var(--text-3); min-width:1.2rem;">[5]</span>
+        <span>KPMG India, &ldquo;NBFCs in India: Growth and Stability,&rdquo; Feb 2024. <a href="https://assets.kpmg.com/content/dam/kpmg/in/pdf/2024/02/nbfcs-in-india-growth-and-stability.pdf" target="_blank" style="color:var(--accent-dark);">Link</a></span>
+      </li>
+      <li style="font-size:0.75rem; color:var(--text-2); padding:0.35rem 0; border-bottom:1px solid var(--border); display:flex; gap:0.5rem;">
+        <span style="font-weight:700; color:var(--text-3); min-width:1.2rem;">[6]</span>
+        <span>JLL India, &ldquo;India&rsquo;s Logistics Absorption Soars to New Heights,&rdquo; 2024. Grade A avg rent: INR 24.8/sq ft/mo. <a href="https://www.jll.com/en-in/newsroom/indias-logistics-absorption-hits-504m-sq-ft-record-in-2024" target="_blank" style="color:var(--accent-dark);">Link</a></span>
+      </li>
+      <li style="font-size:0.75rem; color:var(--text-2); padding:0.35rem 0; border-bottom:1px solid var(--border); display:flex; gap:0.5rem;">
+        <span style="font-weight:700; color:var(--text-3); min-width:1.2rem;">[7]</span>
+        <span>Walmart / 8th &amp; Walton, &ldquo;Walmart OTIF: A Supplier&rsquo;s Guide to On-Time In-Full,&rdquo; 2024. OTIF threshold: 98% (collect), 95% (in-full). <a href="https://www.8thandwalton.com/blog/walmart-otif/" target="_blank" style="color:var(--accent-dark);">Link</a></span>
+      </li>
+      <li style="font-size:0.75rem; color:var(--text-2); padding:0.35rem 0; border-bottom:1px solid var(--border); display:flex; gap:0.5rem;">
+        <span style="font-weight:700; color:var(--text-3); min-width:1.2rem;">[8]</span>
+        <span>Extensiv, &ldquo;2025 Third-Party Logistics Warehouse Benchmark Report,&rdquo; 2025. <a href="https://www.extensiv.com/resource-library/report/third-party-logistics-warehouse-benchmark-report" target="_blank" style="color:var(--accent-dark);">Link</a></span>
+      </li>
+      <li style="font-size:0.75rem; color:var(--text-2); padding:0.35rem 0; display:flex; gap:0.5rem;">
+        <span style="font-weight:700; color:var(--text-3); min-width:1.2rem;">[9]</span>
+        <span>Sievo, &ldquo;FMCG Procurement: Benchmarks and KPIs for 2026,&rdquo; based on $403B anonymized FMCG spend data, 2025. <a href="https://sievo.com/blog/fmcg-procurement-industry-benchmarks" target="_blank" style="color:var(--accent-dark);">Link</a></span>
+      </li>
+    </ol>
+    <p style="font-size:0.7rem; color:var(--text-3); margin-top:0.75rem; font-style:italic;">Note: The 18% rejection rate is a composite estimate. NABCONS data shows 3.89&ndash;15.05% loss at harvest and post-harvest stages. The 18% includes additional handling, transit, and warehouse-level quality failures (weight variance, packaging, labelling) not captured in farm-gate surveys. This is a directional assumption, not a verified figure.</p>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="wrap">
+    <p>Prepared by <strong>Harsh Jain Ashok</strong> &middot; MBA Candidate, Mesa School of Business, Bengaluru<br>
+    All vendor data is synthetic. Methodology and cost model available in detailed requirements document.</p>
+  </div>
+</footer>
+
+<script>
+  // ── STAGE TABS ──
+  const stageTabs = document.querySelectorAll('.stage-tab');
+  const stagePanels = document.querySelectorAll('.stage-panel');
+
+  stageTabs.forEach(tab => {
+    tab.addEventListener('click', () => {
+      const target = tab.dataset.stage;
+      stageTabs.forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+      stagePanels.forEach(p => p.classList.toggle('active', p.id === target));
+      window.scrollTo({ top: document.querySelector('.tab-bar').offsetTop, behavior: 'smooth' });
+    });
+  });
+</script>
+</body>
+</html>
