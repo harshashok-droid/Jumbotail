@@ -290,6 +290,29 @@
       .kpi-head, .kpi-row { grid-template-columns: 1fr 1fr 1fr; }
       .stat-grid { grid-template-columns: 1fr 1fr; }
     }
+
+    /* Methodology tooltip */
+    .method-tip { position: relative; display: inline-block; cursor: pointer; }
+    .method-tip .tip-icon {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 18px; height: 18px; border-radius: 50%; background: var(--amber);
+      color: #fff; font-size: 11px; font-weight: 700; margin-left: 6px;
+      vertical-align: middle; font-style: normal;
+    }
+    .method-tip .tip-body {
+      display: none; position: absolute; bottom: calc(100% + 10px); left: 50%;
+      transform: translateX(-50%); width: 360px; background: #1a1a2e; color: #e8e8e8;
+      font-size: 0.72rem; line-height: 1.55; padding: 14px 16px; border-radius: 8px;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.25); z-index: 100; text-align: left;
+      font-style: normal; font-weight: 400;
+    }
+    .method-tip .tip-body::after {
+      content: ''; position: absolute; top: 100%; left: 50%; transform: translateX(-50%);
+      border: 6px solid transparent; border-top-color: #1a1a2e;
+    }
+    .method-tip:hover .tip-body,
+    .method-tip:focus .tip-body { display: block; }
+    .method-tip .tip-body strong { color: #f4a261; font-weight: 600; }
   </style>
 </head>
 <body>
@@ -437,7 +460,7 @@
 
     <!-- Hero stat -->
     <div class="card bl-amber mb-2" style="text-align:center; padding:2.25rem;">
-      <div class="big-num amber" style="font-size: 2.8rem;">~4,200 sq ft <span class="src-tag assumption">Modelled</span></div>
+      <div class="big-num amber" style="font-size: 2.8rem;">~4,200 sq ft <span class="src-tag assumption">Modelled</span><span class="method-tip" tabindex="0"><span class="tip-icon">i</span><span class="tip-body"><strong>Formula</strong><br>(daily rejected units &times; cu ft per unit) &divide; 4 ft stack height &times; 5-day hold<br><br><strong>Unit volumes</strong><br>25 kg bag (rice/atta/dal/sugar/salt): 1.0&ndash;2.5 cu ft<br>15 L oil tin: 0.9 cu ft<br>Outer carton (spices/FMCG/HPC): 0.3&ndash;0.4 cu ft<br><br><strong>Stack height:</strong> 4 ft (blocked-access staging bay, no racking)<br><strong>Dwell time:</strong> 5 days (standard vendor pickup SLA)</span></span></div>
       <div class="lbl" style="display:block; margin-top:0.5rem; margin-bottom:0.75rem;">Estimated daily FC floor space consumed by rejected vendor stock</div>
       <p style="font-size:0.85rem; max-width:580px; margin:0 auto;">At &#8377;20&ndash;30 per sq ft per month <a href="https://www.jll.com/en-in/newsroom/indias-logistics-absorption-hits-504m-sq-ft-record-in-2024" target="_blank" class="src-tag benchmark">JLL India 2024</a>, this space has a carrying cost &mdash; and more importantly, it cannot receive new inbound stock from performing vendors.</p>
       <p style="font-size:0.72rem; color:var(--text-3); margin-top:0.65rem; font-style:italic;">Assumes 18% rejection, 5-day vendor pickup <span class="src-tag assumption">Standard SLA</span>, standard racking. Actual dwell time varies by vendor and region. This is a directional estimate &mdash; Week 1 validation would measure actual bay utilisation.</p>
